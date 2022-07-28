@@ -1,16 +1,16 @@
-DROP DATABASE IF EXISTS ratingsandreviews;
-CREATE DATABASE ratingsandreviews;
 \connect ratingsandreviews;
 CREATE TABLE IF NOT EXISTS reviews (
   review_id INT NOT NULL,
   product_id INT NOT NULL,
   rating INT NOT NULL,
-  summary VARCHAR(60),
-  recommend BOOLEAN NOT NULL,
+  review_date VARCHAR(30) NOT NULL,
+  summary VARCHAR(250),
   body VARCHAR(1000) NOT NULL,
-  inputdate VARCHAR(30) NOT NULL,
+  recommend BOOLEAN NOT NULL,
+  reported BOOLEAN NOT NULL,
   reviewer_name VARCHAR(60) NOT NULL,
   email VARCHAR(60) NOT NULL,
+  response VARCHAR(250),
   helpfulness INT NOT NULL,
   PRIMARY KEY (review_id)
 );
@@ -23,31 +23,35 @@ CREATE TABLE IF NOT EXISTS photos (
 );
 
 CREATE TABLE IF NOT EXISTS product_fit (
-  fit_id INT NOT NULL,
-  rating NUMERIC NOT NULL,
-  PRIMARY KEY (fit_id)
+  product_id INT NOT NULL,
+  char_id INT NOT NULL
+  fit_rating INT NOT NULL,
+  total_reviews NUMERIC NOT NULL,
+  PRIMARY KEY (product_id)
 );
 
 CREATE TABLE IF NOT EXISTS product_length (
-  length_id INT NOT NULL,
-  rating NUMERIC NOT NULL,
-  PRIMARY KEY (length_id)
+  product_id INT NOT NULL,
+  length_rating INT NOT NULL,
+  total_reviews NUMERIC NOT NULL,
+  PRIMARY KEY (product_id)
 );
 
 CREATE TABLE IF NOT EXISTS product_comfort (
-  comfort_id INT NOT NULL,
-  rating NUMERIC NOT NULL,
-  PRIMARY KEY (comfort_id)
+  product_id INT NOT NULL,
+  comfort_rating INT NOT NULL,
+  total_reviews NUMERIC NOT NULL,
+  PRIMARY KEY (product_id)
 );
 
 CREATE TABLE IF NOT EXISTS product_quality (
-  quality_id INT NOT NULL,
-  rating NUMERIC NOT NULL,
-  PRIMARY KEY (quality_id)
+  product_id INT NOT NULL,
+  quality_rating INT NOT NULL,
+  total_reviews NUMERIC NOT NULL,
+  PRIMARY KEY (product_id)
 );
 
 CREATE TABLE IF NOT EXISTS ratings (
-  ratings_id INT NOT NULL,
   product_id INT NOT NULL,
   oneStar INT NOT NULL,
   twoStar INT NOT NULL,
@@ -56,27 +60,54 @@ CREATE TABLE IF NOT EXISTS ratings (
   fiveStar INT NOT NULL,
   recommended INT NOT NULL,
   notRecommended INT NOT NULL,
-  product_fit INT NOT NULL,
-  product_length INT NOT NULL,
-  product_comfort INT NOT NULL,
-  product_quality INT NOT NULL,
-  PRIMARY KEY (ratings_id)
+  PRIMARY KEY (product_id)
 );
 
-ALTER TABLE photos
-  ADD FOREIGN KEY (review_id)
-    REFERENCES reviews (review_id)
-    DEFERRABLE INITIALLY DEFERRED;
-
-ALTER TABLE ratings
-  ADD FOREIGN KEY (product_fit)
-    REFERENCES product_fit (fit_id),
-  ADD FOREIGN KEY (product_length)
-      REFERENCES product_length (length_id),
-  ADD FOREIGN KEY (product_comfort)
-      REFERENCES product_comfort (comfort_id),
-  ADD FOREIGN KEY (product_quality)
-      REFERENCES product_quality (quality_id)
-      DEFERRABLE INITIALLY DEFERRED;
-
 /*  psql postgres -U sdc < postgresSchema.sql */
+
+
+/* First, I split the characteristics.csv into 4 tables of each char type. I saved all
+4 queries as .csv files. */
+
+/* Created new tables to populate with csv data for each characteristic. */
+CREATE TABLE quality_chars (
+	char_id INT NOT NULL,
+	product_id INT NOT NULL
+);
+/* Then, generate a table that sums the chars of all reviews. */
+
+CREATE TABLE length_calc AS (
+	SELECT characteristic_id,
+	  SUM(value),
+	  COUNT(characteristic_id)
+	FROM characteristic_reviews
+	WHERE EXISTS (
+		SELECT char_id
+		FROM length_chars
+		WHERE characteristic_id=char_id
+	)
+	GROUP BY characteristic_id
+	ORDER BY characteristic_id ASC
+)
+
+/* Create a second middleman table, adding the average of two columns. */
+CREATE TABLE length_avg AS (
+	select *, ROUND(sum / count::numeric, 6) AS average from length_calc
+);
+
+
+/* COMBINE CALCULATED VALUES WITH LIST OF CHARS/PRODUCTID. */
+CREATE TABLE lengthlength AS (
+SELECT length_chars.id, length_chars.product_id,
+length_avg.sum, length_avg.count, length_avg.average
+FROM length_chars
+LEFT JOIN length_avg
+  ON length_chars.id = length_avg.characteristic_id
+  GROUP BY length_chars.id, length_chars.product_id,
+length_avg.sum, length_avg.count, length_avg.average
+  ORDER BY product_id ASC
+);
+
+/* Set primary key as char_id. */
+ALTER TABLE lengthlength
+ADD PRIMARY KEY (char_id);
