@@ -111,3 +111,28 @@ length_avg.sum, length_avg.count, length_avg.average
 /* Set primary key as char_id. */
 ALTER TABLE lengthlength
 ADD PRIMARY KEY (char_id);
+
+
+
+CREATE TABLE allratings AS (
+	SELECT onestar.product_id, onestar.onestar, twostar.twostar,
+	threestar.threestar, fourstar.fourstar, fivestar.fivestar,
+	recommended.recommended, notrecommended.notrecommended
+	FROM onestar
+	LEFT JOIN twostar
+	ON onestar.product_id = twostar.product_id
+	LEFT JOIN threestar
+	ON onestar.product_id = threestar.product_id
+	LEFT JOIN fourstar
+	ON onestar.product_id = fourstar.product_id
+	LEFT JOIN fivestar
+	ON onestar.product_id = fivestar.product_id
+	LEFT JOIN recommended
+	ON onestar.product_id = recommended.product_id
+	LEFT JOIN notrecommended
+	ON onestar.product_id = recommended.product_id
+	GROUP BY onestar.product_id, onestar.onestar, twostar.twostar,
+	threestar.threestar, fourstar.fourstar, fivestar.fivestar,
+	recommended.recommended, notrecommended.notrecommended
+	ORDER BY product_id ASC
+);
