@@ -136,3 +136,81 @@ CREATE TABLE allratings AS (
 	recommended.recommended, notrecommended.notrecommended
 	ORDER BY product_id ASC
 );
+
+
+SELECT photo_id AS id, photo_url AS url, review_id
+FROM photos
+WHERE photos.review_id in (
+	SELECT id AS review_id
+	FROM reviews
+	WHERE product_id = 37311 AND reported = false
+)
+
+
+SELECT r.id AS review_id, r.rating, r.summary, r.recommend, r.response, r.body,
+r.review_date AS date, r.reviewer_name, r.helpfulness
+(SELECT json_agg(json_build_object(
+	'id', p.photo_id,
+	'url', p.photo_url
+  ))
+ FROM photos p
+ WHERE p.review_id = r.id)
+FROM reviews AS r
+WHERE r.product_id = 37311 AND r.reported = false
+
+
+'product', 2,
+'page', 0,
+'count', 5,
+'results', (SELECT json_agg(json_build_object(
+	'review_id', r.id,
+	'rating', r.rating,
+	'summary', r.summary,
+	'recommend', r.response,
+	'body', r.body,
+	'date', r.review_date,
+	'reviewer_name', r.reviewer_name,
+	'helpfulness', r.helpfulness
+))
+FROM reviews r
+WHERE product_id = 2 AND reported = false AS results
+)
+
+SELECT json_build_object(
+	'product_id', 2,
+	'ratings', json_build_object(
+		'1', r.onestar,
+		'2', r.twostar,
+		'3', r.threestar,
+		'4', r.fourstar,
+		'5', r.fivestar
+	),
+	'recommended', json_build_object(
+		'true', r.recommended,
+		'false', r.notrecommended
+	),
+	'characteristics', json_build_object(
+		'Fit', (SELECT json_build_object(
+			'id', pf.char_id,
+			'value', pf.average)
+		    FROM product_fit pf
+		    WHERE pf.product_id = r.product_id),
+		'Length', (SELECT json_build_object(
+			'id', pl.char_id,
+			'value', pl.average)
+		    FROM product_length pl
+		    WHERE pl.product_id = r.product_id),
+		'Comfort', (SELECT json_build_object(
+			'id', pc.char_id,
+			'value', pc.average)
+		    FROM product_fit pc
+		    WHERE pc.product_id = r.product_id),
+		'Quality', (SELECT json_build_object(
+			'id', pq.char_id,
+			'value', pq.average)
+		    FROM product_fit pq
+		    WHERE pq.product_id = r.product_id)
+	)
+)
+FROM ratings r
+WHERE r.product_id = 1;
