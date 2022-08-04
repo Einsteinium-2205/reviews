@@ -21,7 +21,7 @@ const meta = `http://localhost:8080/reviews/meta?product_id=${randomNum()}`;
 
 
 export default function test() {
-  const res = http.get(url);
+  const res = http.get(meta);
   sleep(0.1);
   check(res, {
     'is status 200': (r) => r.status === 200,

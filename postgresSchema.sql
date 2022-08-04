@@ -214,3 +214,118 @@ SELECT json_build_object(
 )
 FROM ratings r
 WHERE r.product_id = 1;
+
+
+WITH ins1 AS (
+  INSERT INTO reviews
+  VALUES(
+      (SELECT MAX(id)+1 FROM reviews),
+	  123456789,
+	  4,
+	  (select extract(epoch from now())),
+	  'new summary',
+	  'new body',
+	  true,
+	  false,
+	  'new name',
+	  'new email',
+	  null,
+	  0)
+	RETURNING id AS review_id
+)
+INSERT INTO photos
+VALUES((SELECT MAX(photo_id)+1 FROM photos), (SELECT review_id FROM ins1), 'http://google.com')
+RETURNING *;
+
+
+
+
+WITH ins1 AS (
+  INSERT INTO reviews
+  VALUES(
+      (SELECT MAX(id)+1 FROM reviews),
+	  123456789,
+	  3,
+	  (select extract(epoch from now())),
+	  'new summary',
+	  'new body',
+	  true,
+	  false,
+	  'new name',
+	  'new email',
+	  null,
+	  0)
+	RETURNING id AS review_id, rating, recommend
+),
+ins2 AS (
+INSERT INTO ratings VALUES(
+	123456789,0,0,0,0,0,0,0
+)
+ON CONFLICT(product_id) DO NOTHING
+),
+up1 AS (
+UPDATE product_comfort
+SET average = (SELECT ROUND(AVG(rating), 6) from reviews where product_id=123456789)
+WHERE product_comfort.product_id = 123456789
+),
+up2 AS (
+UPDATE product_fit
+SET average = (SELECT ROUND(AVG(rating), 6) from reviews where product_id=123456789)
+WHERE product_fit.product_id = 123456789
+),
+up3 AS (
+UPDATE product_length
+SET average = (SELECT ROUND(AVG(rating), 6) from reviews where product_id=123456789)
+WHERE product_length.product_id = 123456789
+),
+up4 AS (
+UPDATE product_quality
+SET average = (SELECT ROUND(AVG(rating), 6) from reviews where product_id=123456789)
+WHERE product_quality.product_id = 123456789
+),
+up5 AS (
+UPDATE ratings
+SET onestar = onestar + 1
+WHERE (SELECT rating FROM ins1)=1 AND ratings.product_id=123456789
+),
+up6 AS (
+UPDATE ratings
+SET twostar = twostar + 1
+WHERE (SELECT rating FROM ins1)=2 AND ratings.product_id=123456789
+),
+up7 AS (
+UPDATE ratings
+SET threestar = threestar + 1
+WHERE (SELECT rating FROM ins1)=3 AND ratings.product_id=123456789
+),
+up8 AS (
+UPDATE ratings
+SET fourstar = fourstar + 1
+WHERE (SELECT rating FROM ins1)=4 AND ratings.product_id=123456789
+),
+up9 AS (
+UPDATE ratings
+SET fivestar = fivestar + 1
+WHERE (SELECT rating FROM ins1)=5 AND ratings.product_id=123456789
+),
+up10 AS (
+UPDATE ratings
+SET recommended = recommended + 1
+WHERE (SELECT recommend FROM ins1)=true AND ratings.product_id=123456789
+),
+up11 AS (
+UPDATE ratings
+SET notrecommended = notrecommended + 1
+WHERE (SELECT recommend FROM ins1)=false AND ratings.product_id=123456789
+)
+INSERT INTO photos
+SELECT *
+FROM (VALUES
+	((SELECT MAX(photo_id)+1 FROM photos), (SELECT review_id FROM ins1), NULL),
+	((SELECT MAX(photo_id)+2 FROM photos), (SELECT review_id FROM ins1), 'http://yay.com'),
+	((SELECT MAX(photo_id)+3 FROM photos), (SELECT review_id FROM ins1), 'http://yo.com'),
+	((SELECT MAX(photo_id)+4 FROM photos), (SELECT review_id FROM ins1), 'http://sup.com'),
+	((SELECT MAX(photo_id)+5 FROM photos), (SELECT review_id FROM ins1), 'http://heyo.com')
+   ) photos (photo_id, review_id, photo_url)
+WHERE photo_url IS NOT NULL
+RETURNING *;

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { getAllReviews, getReviewMetadata, markReviewAsHelpful, reportReview, JSONGetAllReviews, JSONGetReviewMetadata } = require('./helpers');
+const { getAllReviews, getReviewMetadata, markReviewAsHelpful, reportReview, JSONGetAllReviews, JSONGetReviewMetadata, postReview } = require('./helpers');
 const app = express();
 app.use(express.json());
 
@@ -13,7 +13,7 @@ app.get('/reviews/meta', (req, res) => {
   JSONGetReviewMetadata(req, res);
 })
 app.post('/reviews', (req, res) => {
-
+  postReview(req, res);
 })
 app.put('/reviews/:review_id/helpful', (req, res) => {
   markReviewAsHelpful(req, res);
