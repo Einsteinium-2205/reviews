@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { markReviewAsHelpful, reportReview, JSONGetAllReviews, JSONGetReviewMetadata, postReview } = require('./helpers');
+const { getAllReviews, getReviewMetadata, markReviewAsHelpful, reportReview, JSONGetAllReviews, JSONGetReviewMetadata, postReview } = require('./helpers');
 const app = express();
 app.use(express.json());
 

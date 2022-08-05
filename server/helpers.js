@@ -343,6 +343,8 @@ const reportReview = (req, res) => {
 }
 
 module.exports = {
+  getAllReviews,
+  getReviewMetadata,
   markReviewAsHelpful,
   reportReview,
   JSONGetAllReviews,
